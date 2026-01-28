@@ -1,0 +1,19 @@
+summary, no, steps, expectedresult
+DO - PKP - NPWP and KTP - Free Charge Fee - Include PPN -  Berhasil printout DO, 1,Setting config matrix pelanggan PKP NPWP & KTP = Free, Berhasil setting matrix pelanggan PKP NPWP & KTP = Free"
+,2,Buat FSO dengan pelanggan PKP yang memiliki NPWP dan KTP,FSO berhasil terbentuk dengan pelanggan PKP yang memiliki NPWP dan KTP
+,3,Buka Menu SMGP FDo,Berhasil menampilkan form FDo
+,4,Buat FDo dengan FSo yang sudah terbentuk,Berhasil membuat FDo dengan FSo yang ada
+,5,Pilih Include PPN,Harga jual produk sudah inc dengan PPN
+,6,Simpan FDo,FDo berhasil disimpan
+,7,Click "Cetak",Muncul Pop up Printer Selection
+,8,Pilih print to file,FDo berhasil di cetak berbentuk file
+,9,Check field Harga Jual, Subtotal dan Total- Harga jual per item sudah include dengan amount PPN - Total = subtotal - diskon faktur (Jika Ada)"
+DO - PKP - NPWP and KTP - Charge Fee - Include PPN - Berhasil printout DO ,1,Setting config matrix pelanggan PKP NPWP & KTP = Charge fee, Berhasil setting matrix pelanggan PKP NPWP & KTP = Charge Fee"
+,2,Buat FSO dengan pelanggan PKP yang memiliki NPWP dan KTP,FSO berhasil terbentuk dengan pelanggan PKP yang memiliki NPWP dan KTP
+,3,Buka Menu SMGP FDo,Berhasil menampilkan form FDo
+,4,Buat FDo dengan FSo yang sudah terbentuk,Berhasil membuat FDo dengan FSo yang ada
+,5,Pilih Include PPN,Harga jual produk sudah inc dengan PPN
+,6,Simpan FDo,FDo berhasil disimpan
+,7,Click "Cetak",Muncul Pop up Printer Selection
+,8,Pilih print to file,FDo berhasil di cetak berbentuk file
+,9,Check field Harga Jual, Subtotal dan Total - Harga jual per item sudah include amount PPN dan charge fee - Total = subtotal - diskon faktur (Jika Ada)"
