@@ -1,6 +1,7 @@
 import csv
 import re
 from pathlib import Path
+import io
 
 INPUT_FILE = "input.csv"
 OUTPUT_FILE = "kiwi_one_line.csv"
@@ -30,29 +31,24 @@ def parse_int(s: str) -> int:
 
 
 def build_steps_text(step_rows):
-    """
-    step_rows: list of dicts with keys: no(int), steps(str), expected(str)
-    """
     lines = []
     for r in sorted(step_rows, key=lambda x: x["no"]):
-        action = clean(r["steps"])
-        expected = r["expectedresult"]
-        expected = expected.replace("\\n", "\n")  # if someone uses literal \n
-        expected = expected.strip()
+        # Convert literal \n to real newlines in BOTH steps and expected
+        action_raw = (r.get("steps") or "").replace("\\n", "\n")
+        expected_raw = (r.get("expectedresult") or "").replace("\\n", "\n")
+
+        action = clean(action_raw)
+        expected = expected_raw.strip()
 
         if action:
             lines.append(f'{r["no"]}. {action}')
         else:
-            lines.append(f'{r["no"]}.')  # fallback if action empty
+            lines.append(f'{r["no"]}.')
 
-        # Support multi-expected separated by newlines or " - " bullets
-        # If expected has bullet-ish " - " patterns, we split conservatively:
         exp_lines = []
         if "\n" in expected:
             exp_lines = [x.strip() for x in expected.split("\n") if x.strip()]
         else:
-            # If people wrote: "A - B - C" we convert into multiple outcomes
-            # But avoid splitting negative numbers / dates; keep simple heuristic:
             if " - " in expected:
                 exp_lines = [x.strip() for x in expected.split(" - ") if x.strip()]
             else:
@@ -65,7 +61,6 @@ def build_steps_text(step_rows):
 
 
 def read_input_rows(path: str):
-    # Try to sniff delimiter (comma vs semicolon)
     raw = Path(path).read_text(encoding="utf-8", errors="replace")
     sample = raw[:2000]
     try:
@@ -74,15 +69,14 @@ def read_input_rows(path: str):
         dialect = csv.excel  # default comma
 
     rows = []
-    reader = csv.DictReader(raw.splitlines(), dialect=dialect)
+    reader = csv.DictReader(io.StringIO(raw), dialect=dialect)
     for r in reader:
-        # Normalize header names in case of different casing
         rr = {k.strip().lower(): (v if v is not None else "") for k, v in r.items()}
         rows.append({
-            "summary": clean(rr.get("summary", "")),
+            "summary": clean(rr.get("summary", "").replace("\\n", "\n")),
             "no": parse_int(rr.get("no", "")),
-            "steps": rr.get("steps", "").strip(),
-            "expectedresult": rr.get("expectedresult", "").strip(),
+            "steps": rr.get("steps", "").strip(),  # keep raw; we convert later
+            "expectedresult": rr.get("expectedresult", "").strip(),  # keep raw; we convert later
         })
     return rows
 
