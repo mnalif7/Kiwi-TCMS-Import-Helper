@@ -17,7 +17,7 @@ CATEGORY = 1                      # default category id
 KIWI_XMLRPC_URL = "http://hub-stg.bosnetdis.com:8000/xml-rpc/"
 INPUT_FILE = "input.csv"          # <-- your raw file from Google Sheets
 DEFAULT_PRIORITY_ID = 1
-CASE_STATUS_ID = 1                # 1 = CONFIRMED in Kiwi typically (depends on your setup)
+CASE_STATUS_ID = 2                # 1 = CONFIRMED in Kiwi typically (depends on your setup)
 
 DRY_RUN = False                   # True = do not create cases, only print preview
 # =======================
