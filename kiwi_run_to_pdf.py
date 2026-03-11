@@ -1,206 +1,429 @@
-import sys
+import os
 from datetime import datetime
 from tcms_api import TCMS
 from jinja2 import Template
 
-# ====== CONFIG ======
 KIWI_XMLRPC_URL = "http://hub-stg.bosnetdis.com:8000/xml-rpc/"
 USERNAME = "administrator"
 PASSWORD = "QA_Bosn3t"
 
-TEST_RUN_ID = 3  # <-- change this
+TEST_RUN_ID = 34
 
-PROJECT_NAME = "Bosnet Project"
-CLIENT_NAME = "Client Name"
+CLIENT_NAME = "PT. KALBE NUTRITIONALS"
 ENVIRONMENT = "Staging"
-QA_PREPARED_BY = "QA Team"
 
 OUTPUT_HTML = "qa_test_report.html"
-OUTPUT_PDF = "qa_test_report.pdf"
-# ====================
+
+EVIDENCE_FOLDER = "evidence"
+LOGO_FILE = "bosnet_logo.png"
 
 
-HTML_TEMPLATE = r"""
-<!doctype html>
+HTML_TEMPLATE = """
+
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>QA Test Report</title>
-  <style>
-    @page {
-      size: A4;
-      margin: 18mm 16mm 18mm 16mm;
-      @bottom-right {
-        content: "Page " counter(page) " of " counter(pages);
-        font-size: 10px;
-        color: #666;
-      }
-      @bottom-left {
-        content: "{{ project_name }} — QA Test Report";
-        font-size: 10px;
-        color: #666;
-      }
-    }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; }
-    h1 { font-size: 22px; margin: 0 0 6px 0; }
-    h2 { font-size: 16px; margin: 18px 0 8px 0; }
-    h3 { font-size: 13px; margin: 12px 0 6px 0; }
-    .muted { color: #666; }
-    .cover { padding-top: 10mm; }
-    .kv { margin-top: 12px; border: 1px solid #eee; border-radius: 8px; padding: 10px 12px; }
-    .kv .row { display: flex; gap: 10px; padding: 2px 0; }
-    .kv .k { width: 130px; font-weight: bold; color: #333; }
-    .kv .v { flex: 1; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid #ddd; }
-    .badge.ok { border-color: #b7e1cd; background: #e6f4ea; }
-    .badge.warn { border-color: #ffeeba; background: #fff3cd; }
-    .table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .table th, .table td { border: 1px solid #eee; padding: 8px; vertical-align: top; }
-    .table th { background: #fafafa; text-align: left; }
-    .tc { border: 1px solid #eee; border-radius: 10px; padding: 10px 12px; margin: 10px 0; }
-    .tc-meta { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 6px 0 10px 0; }
-    .tc-meta div { color: #333; }
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      background: #fbfbfb;
-      border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 6px 0 0 0;
-      font-family: Consolas, Menlo, Monaco, monospace;
-      font-size: 11px;
-      line-height: 1.35;
-    }
-    .page-break { page-break-after: always; }
-  </style>
+
+<meta charset="utf-8">
+<title>Book of Scenario DCA Dashboard</title>
+
+<style>
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+margin:0;
+background:#ffffff;
+color:#333;
+}
+
+.header-banner img{
+width:100%;
+display:block;
+}
+
+.container{
+padding:28px;
+max-width:1000px;
+margin:auto;
+}
+
+h2{
+font-size:18px;
+margin-bottom:6px;
+}
+
+.project-table{
+margin-top:6px;
+font-size:12px;
+border-collapse:collapse;
+}
+
+.project-table td{
+padding:2px 10px 2px 0;
+vertical-align:top;
+}
+
+.project-label{
+font-weight:bold;
+width:160px;
+}
+
+/* SUMMARY */
+
+.summary{
+margin-top:10px;
+padding:6px 0;
+}
+
+.summary h3{
+font-size:13px;
+margin-bottom:4px;
+}
+
+.summary table td{
+font-size:11px;
+padding:1px 14px 1px 0;
+}
+
+/* TESTCASE */
+
+.tc{
+padding:6px 0;
+margin-top:10px;
+page-break-inside: avoid;
+break-inside: avoid;
+}
+
+.tc h3{
+font-size:13px;
+font-weight:600;
+margin-bottom:2px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.title{
+flex:1;
+padding-right:10px;
+}
+
+.category{
+font-size:11px;
+margin-bottom:2px;
+color:#444;
+}
+
+.badge{
+padding:2px 8px;
+border-radius:999px;
+font-size:10px;
+font-weight:600;
+white-space:nowrap;
+flex-shrink:0;
+}
+
+.PASSED{
+background:#d1fae5;
+color:#065f46;
+}
+
+.FAILED{
+background:#fdecea;
+color:#b02a37;
+}
+
+.BLOCKED{
+background:#fff4e5;
+color:#a15c00;
+}
+
+.ERROR{
+background:#fdecea;
+color:#b02a37;
+}
+
+.UNKNOWN{
+background:#eee;
+color:#555;
+}
+
+/* STEPS */
+
+pre{
+background:#ffffff;
+padding:4px 0;
+white-space:pre-wrap;
+font-size:11px;
+line-height:15px;
+margin-top:2px;
+}
+
+/* EVIDENCE */
+
+.evidence-title{
+font-size:10px;
+margin-top:4px;
+margin-bottom:3px;
+}
+
+.evidence-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+margin-top:4px;
+}
+
+.evidence-grid img{
+width:100%;
+max-width:420px;
+border-radius:3px;
+}
+
+</style>
+
 </head>
+
 <body>
 
-  <!-- COVER -->
-  <div class="cover">
-    <h1>QA Test Report</h1>
-    <div class="muted">Generated on {{ generated_on }}</div>
+<div class="header-banner">
+<img src="{{logo}}">
+</div>
 
-    <div class="kv">
-      <div class="row"><div class="k">Project</div><div class="v">{{ project_name }}</div></div>
-      <div class="row"><div class="k">Client</div><div class="v">{{ client_name }}</div></div>
-      <div class="row"><div class="k">Environment</div><div class="v">{{ environment }}</div></div>
-      <div class="row"><div class="k">Test Run ID</div><div class="v">{{ test_run_id }}</div></div>
-      <div class="row"><div class="k">Prepared By</div><div class="v">{{ prepared_by }}</div></div>
-      <div class="row"><div class="k">Total Test Cases</div><div class="v"><span class="badge ok">{{ total_cases }}</span></div></div>
-    </div>
-  </div>
+<div class="container">
 
-  <div class="page-break"></div>
+<h2>Book of Scenario DCA Dashboard</h2>
 
-  <!-- SUMMARY -->
-  <h2>Test Execution Summary</h2>
-  <table class="table">
-    <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Test Run ID</td><td>{{ test_run_id }}</td></tr>
-    <tr><td>Total unique test cases in run</td><td>{{ total_cases }}</td></tr>
-    <tr><td>Notes</td><td class="muted">This report lists scenario-level test cases executed in the run, including the latest saved steps (text).</td></tr>
-  </table>
+<table class="project-table">
 
-  <h2>Test Case List</h2>
-  <div class="muted">Scenario + general steps (latest text)</div>
+<tr>
+<td class="project-label">PROJECT NAME</td>
+<td>: {{project}}</td>
+</tr>
 
-  {% for tc in testcases %}
-    <div class="tc">
-      <h3>{{ loop.index }}. [TC-{{ tc.id }}] {{ tc.summary }}</h3>
-      <div class="tc-meta">
-        <div><b>Category:</b> {{ tc.category }}</div>
-      </div>
-      <div><b>Steps / Expected:</b></div>
-      <pre>{{ tc.text }}</pre>
-    </div>
-  {% endfor %}
+<tr>
+<td class="project-label">CODE</td>
+<td>: BDI/BND/SGPA/01/00278</td>
+</tr>
+
+<tr>
+<td class="project-label">PRODUCT</td>
+<td>: {{product}}</td>
+</tr>
+
+<tr>
+<td class="project-label">CLIENT</td>
+<td>: {{client}}</td>
+</tr>
+
+<tr>
+<td class="project-label">ENVIRONMENT</td>
+<td>: {{env}}</td>
+</tr>
+
+<tr>
+<td class="project-label">RUN ID</td>
+<td>: {{run_id}}</td>
+</tr>
+
+<tr>
+<td class="project-label">DATE EXECUTION</td>
+<td>: {{execution_date}}</td>
+</tr>
+
+</table>
+
+<div class="summary">
+
+<h3>Test Execution Summary</h3>
+
+<table>
+<tr>
+<td>Executed Test Cases</td>
+<td>: {{executed}}</td>
+</tr>
+
+<tr>
+<td>Passed</td>
+<td>: {{passed}}</td>
+</tr>
+
+<tr>
+<td>Failed</td>
+<td>: {{failed}}</td>
+</tr>
+
+</table>
+
+</div>
+
+{% for tc in testcases %}
+
+<div class="tc">
+
+<h3>
+
+<div class="title">
+{{loop.index}}. {{tc.summary}}
+</div>
+
+<span class="badge {{tc.status}}">
+{{tc.status}}
+</span>
+
+</h3>
+
+<div class="category">
+<b>Category:</b> {{tc.category}}
+</div>
+
+<pre>{{tc.text}}</pre>
+
+{% if tc.evidence %}
+
+<div class="evidence-title"><b>Evidence</b></div>
+
+<div class="evidence-grid">
+
+{% for img in tc.evidence %}
+
+<img src="{{img}}">
+
+{% endfor %}
+
+</div>
+
+{% endif %}
+
+</div>
+
+{% endfor %}
+
+</div>
 
 </body>
 </html>
+
 """
 
 
-def get_cases_from_run(tcms, run_id: int):
-    # 1) executions in the run
-    executions = tcms.TestExecution.filter({"run": run_id})
-    if not executions:
-        return []
+def get_run_information(tcms):
 
-    # 2) extract case IDs
-    case_ids = set()
+    run = tcms.TestRun.filter({"id": TEST_RUN_ID})[0]
+
+    plan_id = run["plan"]
+    plan = tcms.TestPlan.filter({"id": plan_id})[0]
+
+    product_id = plan["product"]
+    product = tcms.Product.filter({"id": product_id})[0]
+
+    finished = run.get("stop_date")
+
+    execution_date = ""
+
+    if finished:
+        finished_str = str(finished)
+        dt = datetime.strptime(finished_str, "%Y%m%dT%H:%M:%S")
+        execution_date = dt.strftime("%d %B %Y")
+
+    return {
+        "project": plan["name"],
+        "product": product["name"],
+        "execution_date": execution_date
+    }
+
+
+def get_cases_from_run(tcms):
+
+    executions = tcms.TestExecution.filter({"run": TEST_RUN_ID})
+
+    case_ids = []
+    status_map = {}
+
+    passed = 0
+    failed = 0
+
     for e in executions:
+
         tc_id = e.get("case") or e.get("testcase")
-        if tc_id:
-            case_ids.add(int(tc_id))
 
-    if not case_ids:
-        return []
+        if not tc_id:
+            continue
 
-    case_ids = sorted(case_ids)
+        tc_id = int(tc_id)
+        case_ids.append(tc_id)
 
-    # 3) fetch cases with latest "text" via TestCase.filter
+        status = str(e.get("status__name","UNKNOWN")).upper()
+        status_map[tc_id] = status
+
+        if status == "PASSED":
+            passed += 1
+
+        if status == "FAILED":
+            failed += 1
+
     testcases = tcms.TestCase.filter({"id__in": case_ids})
 
-    # normalize to simple fields for template
     normalized = []
-    for tc in sorted(testcases, key=lambda x: int(x.get("id", 0))):
+
+    for idx, tc in enumerate(testcases, start=1):
+
+        tc_id = int(tc.get("id"))
+
+        evidence = []
+
+        if os.path.exists(EVIDENCE_FOLDER):
+
+            for f in os.listdir(EVIDENCE_FOLDER):
+
+                if f.startswith(f"TC-{idx}-"):
+                    evidence.append(os.path.join(EVIDENCE_FOLDER, f))
+
+        evidence.sort()
+
         normalized.append({
-            "id": tc.get("id"),
-            "summary": tc.get("summary") or "",
-            "category": tc.get("category__name") or tc.get("category") or "",
-            "text": (tc.get("text") or "").replace("\r\n", "\n").strip(),
+            "summary": tc.get("summary",""),
+            "category": tc.get("category__name",""),
+            "text": (tc.get("text") or "").replace("\\r\\n","\\n"),
+            "status": status_map.get(tc_id,"UNKNOWN"),
+            "evidence": evidence
         })
-    return normalized
 
-
-def render_html(context: dict) -> str:
-    tpl = Template(HTML_TEMPLATE)
-    return tpl.render(**context)
-
-
-def html_to_pdf(html_path: str, pdf_path: str):
-    try:
-        from weasyprint import HTML
-    except Exception as e:
-        print("ERROR: WeasyPrint import failed.")
-        print("Install with: pip install weasyprint")
-        print(f"Details: {e}")
-        sys.exit(1)
-
-    HTML(filename=html_path).write_pdf(pdf_path)
+    return normalized, len(case_ids), passed, failed
 
 
 def main():
-    tcms = TCMS(KIWI_XMLRPC_URL, username=USERNAME, password=PASSWORD).exec
 
-    testcases = get_cases_from_run(tcms, TEST_RUN_ID)
-    if not testcases:
-        print(f"No test cases found for Test Run {TEST_RUN_ID}")
-        sys.exit(0)
+    tcms = TCMS(
+        KIWI_XMLRPC_URL,
+        username=USERNAME,
+        password=PASSWORD
+    ).exec
+
+    run_info = get_run_information(tcms)
+
+    testcases, executed, passed, failed = get_cases_from_run(tcms)
 
     context = {
-        "generated_on": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "project_name": PROJECT_NAME,
-        "client_name": CLIENT_NAME,
-        "environment": ENVIRONMENT,
-        "prepared_by": QA_PREPARED_BY,
-        "test_run_id": TEST_RUN_ID,
-        "total_cases": len(testcases),
-        "testcases": testcases,
+        "logo": LOGO_FILE,
+        "project": run_info["project"],
+        "product": run_info["product"],
+        "client": CLIENT_NAME,
+        "env": ENVIRONMENT,
+        "run_id": TEST_RUN_ID,
+        "execution_date": run_info["execution_date"],
+        "executed": executed,
+        "passed": passed,
+        "failed": failed,
+        "testcases": testcases
     }
 
-    html = render_html(context)
+    html = Template(HTML_TEMPLATE).render(**context)
 
-    with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
+    with open(OUTPUT_HTML,"w",encoding="utf-8") as f:
         f.write(html)
 
-    print(f"OK: HTML generated -> {OUTPUT_HTML}")
-
-    html_to_pdf(OUTPUT_HTML, OUTPUT_PDF)
-    print(f"OK: PDF generated  -> {OUTPUT_PDF}")
-    print("DONE 🔥")
+    print("HTML generated")
 
 
 if __name__ == "__main__":
