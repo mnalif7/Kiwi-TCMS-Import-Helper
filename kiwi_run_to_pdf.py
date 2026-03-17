@@ -1,314 +1,39 @@
 import os
+import re
 from datetime import datetime
 from tcms_api import TCMS
 from jinja2 import Template
+
+OUTPUT_HTML = "qa_test_report.html"
+EVIDENCE_FOLDER = "evidence"
+LOGO_FILE = "bosnet_logo.png"
 
 KIWI_XMLRPC_URL = "http://hub-stg.bosnetdis.com:8000/xml-rpc/"
 USERNAME = "administrator"
 PASSWORD = "QA_Bosn3t"
 
-TEST_RUN_ID = 34
-
-CLIENT_NAME = "PT. KALBE NUTRITIONALS"
+TEST_RUN_ID = 37
+CLIENT_NAME = "PT. SOFTEX INDONESIA"
+PROJECT_CODE = "BDI/BND/SGPA/01/00278"
 ENVIRONMENT = "Staging"
 
-OUTPUT_HTML = "qa_test_report.html"
 
-EVIDENCE_FOLDER = "evidence"
-LOGO_FILE = "bosnet_logo.png"
+def parse_kiwi_datetime(value):
+    if not value:
+        return None
 
+    value = str(value).strip()
 
-HTML_TEMPLATE = """
+    for fmt in ("%Y%m%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
 
-<!DOCTYPE html>
-<html>
-<head>
-
-<meta charset="utf-8">
-<title>Book of Scenario DCA Dashboard</title>
-
-<style>
-
-body{
-font-family:Arial, Helvetica, sans-serif;
-margin:0;
-background:#ffffff;
-color:#333;
-}
-
-.header-banner img{
-width:100%;
-display:block;
-}
-
-.container{
-padding:28px;
-max-width:1000px;
-margin:auto;
-}
-
-h2{
-font-size:18px;
-margin-bottom:6px;
-}
-
-.project-table{
-margin-top:6px;
-font-size:12px;
-border-collapse:collapse;
-}
-
-.project-table td{
-padding:2px 10px 2px 0;
-vertical-align:top;
-}
-
-.project-label{
-font-weight:bold;
-width:160px;
-}
-
-/* SUMMARY */
-
-.summary{
-margin-top:10px;
-padding:6px 0;
-}
-
-.summary h3{
-font-size:13px;
-margin-bottom:4px;
-}
-
-.summary table td{
-font-size:11px;
-padding:1px 14px 1px 0;
-}
-
-/* TESTCASE */
-
-.tc{
-padding:6px 0;
-margin-top:10px;
-page-break-inside: avoid;
-break-inside: avoid;
-}
-
-.tc h3{
-font-size:13px;
-font-weight:600;
-margin-bottom:2px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.title{
-flex:1;
-padding-right:10px;
-}
-
-.category{
-font-size:11px;
-margin-bottom:2px;
-color:#444;
-}
-
-.badge{
-padding:2px 8px;
-border-radius:999px;
-font-size:10px;
-font-weight:600;
-white-space:nowrap;
-flex-shrink:0;
-}
-
-.PASSED{
-background:#d1fae5;
-color:#065f46;
-}
-
-.FAILED{
-background:#fdecea;
-color:#b02a37;
-}
-
-.BLOCKED{
-background:#fff4e5;
-color:#a15c00;
-}
-
-.ERROR{
-background:#fdecea;
-color:#b02a37;
-}
-
-.UNKNOWN{
-background:#eee;
-color:#555;
-}
-
-/* STEPS */
-
-pre{
-background:#ffffff;
-padding:4px 0;
-white-space:pre-wrap;
-font-size:11px;
-line-height:15px;
-margin-top:2px;
-}
-
-/* EVIDENCE */
-
-.evidence-title{
-font-size:10px;
-margin-top:4px;
-margin-bottom:3px;
-}
-
-.evidence-grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:10px;
-margin-top:4px;
-}
-
-.evidence-grid img{
-width:100%;
-max-width:420px;
-border-radius:3px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="header-banner">
-<img src="{{logo}}">
-</div>
-
-<div class="container">
-
-<h2>Book of Scenario DCA Dashboard</h2>
-
-<table class="project-table">
-
-<tr>
-<td class="project-label">PROJECT NAME</td>
-<td>: {{project}}</td>
-</tr>
-
-<tr>
-<td class="project-label">CODE</td>
-<td>: BDI/BND/SGPA/01/00278</td>
-</tr>
-
-<tr>
-<td class="project-label">PRODUCT</td>
-<td>: {{product}}</td>
-</tr>
-
-<tr>
-<td class="project-label">CLIENT</td>
-<td>: {{client}}</td>
-</tr>
-
-<tr>
-<td class="project-label">ENVIRONMENT</td>
-<td>: {{env}}</td>
-</tr>
-
-<tr>
-<td class="project-label">RUN ID</td>
-<td>: {{run_id}}</td>
-</tr>
-
-<tr>
-<td class="project-label">DATE EXECUTION</td>
-<td>: {{execution_date}}</td>
-</tr>
-
-</table>
-
-<div class="summary">
-
-<h3>Test Execution Summary</h3>
-
-<table>
-<tr>
-<td>Executed Test Cases</td>
-<td>: {{executed}}</td>
-</tr>
-
-<tr>
-<td>Passed</td>
-<td>: {{passed}}</td>
-</tr>
-
-<tr>
-<td>Failed</td>
-<td>: {{failed}}</td>
-</tr>
-
-</table>
-
-</div>
-
-{% for tc in testcases %}
-
-<div class="tc">
-
-<h3>
-
-<div class="title">
-{{loop.index}}. {{tc.summary}}
-</div>
-
-<span class="badge {{tc.status}}">
-{{tc.status}}
-</span>
-
-</h3>
-
-<div class="category">
-<b>Category:</b> {{tc.category}}
-</div>
-
-<pre>{{tc.text}}</pre>
-
-{% if tc.evidence %}
-
-<div class="evidence-title"><b>Evidence</b></div>
-
-<div class="evidence-grid">
-
-{% for img in tc.evidence %}
-
-<img src="{{img}}">
-
-{% endfor %}
-
-</div>
-
-{% endif %}
-
-</div>
-
-{% endfor %}
-
-</div>
-
-</body>
-</html>
-
-"""
+    return None
 
 
 def get_run_information(tcms):
-
     run = tcms.TestRun.filter({"id": TEST_RUN_ID})[0]
 
     plan_id = run["plan"]
@@ -317,83 +42,161 @@ def get_run_information(tcms):
     product_id = plan["product"]
     product = tcms.Product.filter({"id": product_id})[0]
 
-    finished = run.get("stop_date")
-
-    execution_date = ""
-
-    if finished:
-        finished_str = str(finished)
-        dt = datetime.strptime(finished_str, "%Y%m%dT%H:%M:%S")
-        execution_date = dt.strftime("%d %B %Y")
+    start_date = parse_kiwi_datetime(run.get("start_date"))
+    end_date = parse_kiwi_datetime(run.get("stop_date"))
 
     return {
-        "project": plan["name"],
-        "product": product["name"],
-        "execution_date": execution_date
+        "project": plan.get("name", ""),
+        "run_summary": run.get("summary", ""),
+        "product": product.get("name", ""),
+        "start_date": start_date,
+        "end_date": end_date,
     }
 
 
-def get_cases_from_run(tcms):
+def get_execution_sort_key(execution):
+    exec_id = int(execution.get("id", 0))
 
+    for field in ["tested_date", "stop_date", "close_date", "modified_date"]:
+        dt = parse_kiwi_datetime(execution.get(field))
+        if dt:
+            return (1, dt.timestamp(), exec_id)
+
+    return (0, exec_id)
+
+
+def collect_evidence_files():
+    if not os.path.exists(EVIDENCE_FOLDER):
+        return []
+
+    files = []
+    for name in os.listdir(EVIDENCE_FOLDER):
+        full_path = os.path.join(EVIDENCE_FOLDER, name)
+        if os.path.isfile(full_path):
+            files.append((name, full_path))
+
+    return files
+
+def extract_sort_key(filepath):
+    filename = os.path.basename(filepath)
+
+    # extract last number (usually step number)
+    numbers = re.findall(r'\d+', filename)
+    order = int(numbers[-1]) if numbers else 0
+
+    return order
+
+def find_evidence_for_case(evidence_files, execution_id, testcase_id):
+    matched = []
+
+    exec_prefixes = [
+        f"EXEC-{execution_id}-",
+        f"TE-{execution_id}-",
+    ]
+
+    tc_prefixes = [
+        f"TC-{testcase_id}-",
+    ]
+
+    for filename, full_path in evidence_files:
+        upper_name = filename.upper()
+
+        if any(upper_name.startswith(prefix.upper()) for prefix in exec_prefixes):
+            matched.append(full_path)
+
+    if matched:
+        matched.sort(key=extract_sort_key)
+        return matched
+
+    for filename, full_path in evidence_files:
+        upper_name = filename.upper()
+
+        if any(upper_name.startswith(prefix.upper()) for prefix in tc_prefixes):
+            matched.append(full_path)
+
+    matched.sort(key=extract_sort_key)
+    return matched
+
+
+def get_cases_from_run(tcms):
     executions = tcms.TestExecution.filter({"run": TEST_RUN_ID})
 
-    case_ids = []
-    status_map = {}
-
-    passed = 0
-    failed = 0
+    latest_execution_by_case = {}
 
     for e in executions:
-
         tc_id = e.get("case") or e.get("testcase")
+        exec_id = e.get("id")
 
-        if not tc_id:
+        if not tc_id or not exec_id:
             continue
 
         tc_id = int(tc_id)
-        case_ids.append(tc_id)
+        exec_id = int(exec_id)
 
-        status = str(e.get("status__name","UNKNOWN")).upper()
-        status_map[tc_id] = status
+        current = {
+            "execution_id": exec_id,
+            "testcase_id": tc_id,
+            "status": str(e.get("status__name", "UNKNOWN")).upper(),
+            "raw": e,
+        }
+
+        existing = latest_execution_by_case.get(tc_id)
+        if not existing:
+            latest_execution_by_case[tc_id] = current
+            continue
+
+        current_key = get_execution_sort_key(e)
+        existing_key = get_execution_sort_key(existing["raw"])
+
+        if current_key > existing_key:
+            latest_execution_by_case[tc_id] = current
+
+    case_ids = list(latest_execution_by_case.keys())
+    if not case_ids:
+        return [], 0, 0, 0
+
+    testcases = tcms.TestCase.filter({"id__in": case_ids})
+    testcase_map = {int(tc["id"]): tc for tc in testcases}
+
+    evidence_files = collect_evidence_files()
+
+    normalized = []
+    passed = 0
+    failed = 0
+
+    for tc_id in sorted(case_ids):
+        selected = latest_execution_by_case[tc_id]
+        exec_id = selected["execution_id"]
+        status = selected["status"]
+
+        tc = testcase_map.get(tc_id, {})
+
+        evidence = find_evidence_for_case(
+            evidence_files=evidence_files,
+            execution_id=exec_id,
+            testcase_id=tc_id,
+        )
 
         if status == "PASSED":
             passed += 1
-
-        if status == "FAILED":
+        elif status == "FAILED":
             failed += 1
 
-    testcases = tcms.TestCase.filter({"id__in": case_ids})
-
-    normalized = []
-
-    for idx, tc in enumerate(testcases, start=1):
-
-        tc_id = int(tc.get("id"))
-
-        evidence = []
-
-        if os.path.exists(EVIDENCE_FOLDER):
-
-            for f in os.listdir(EVIDENCE_FOLDER):
-
-                if f.startswith(f"TC-{idx}-"):
-                    evidence.append(os.path.join(EVIDENCE_FOLDER, f))
-
-        evidence.sort()
-
         normalized.append({
-            "summary": tc.get("summary",""),
-            "category": tc.get("category__name",""),
-            "text": (tc.get("text") or "").replace("\\r\\n","\\n"),
-            "status": status_map.get(tc_id,"UNKNOWN"),
-            "evidence": evidence
+            "testcase_id": tc_id,
+            "execution_id": exec_id,
+            "summary": tc.get("summary", ""),
+            "category": tc.get("category__name", ""),
+            "text": (tc.get("text") or "").replace("\\r\\n", "\n"),
+            "status": status,
+            "evidence": evidence,
         })
 
-    return normalized, len(case_ids), passed, failed
+    executed = len(normalized)
+    return normalized, executed, passed, failed
 
 
 def main():
-
     tcms = TCMS(
         KIWI_XMLRPC_URL,
         username=USERNAME,
@@ -401,26 +204,30 @@ def main():
     ).exec
 
     run_info = get_run_information(tcms)
-
     testcases, executed, passed, failed = get_cases_from_run(tcms)
 
     context = {
         "logo": LOGO_FILE,
         "project": run_info["project"],
+        "code": PROJECT_CODE,
         "product": run_info["product"],
         "client": CLIENT_NAME,
         "env": ENVIRONMENT,
         "run_id": TEST_RUN_ID,
-        "execution_date": run_info["execution_date"],
+        "run_summary": run_info["run_summary"],
+        "start_date": run_info["start_date"],
+        "end_date": run_info["end_date"],
         "executed": executed,
         "passed": passed,
         "failed": failed,
-        "testcases": testcases
+        "testcases": testcases,
     }
 
-    html = Template(HTML_TEMPLATE).render(**context)
+    with open("template.html", "r", encoding="utf-8") as f:
+        template = Template(f.read())
+        html = template.render(**context)
 
-    with open(OUTPUT_HTML,"w",encoding="utf-8") as f:
+    with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
 
     print("HTML generated")
